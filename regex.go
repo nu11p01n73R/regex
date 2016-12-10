@@ -67,7 +67,7 @@ func starClosure(s string, p string, start int) (bool, int) {
 func plusClosure(s string, p string, start int) (bool, int) {
 	char := p[0]
 	i := start
-	for j := 0; i < len(s) && j < len(p) && (s[i] == char || char == '.'); i, j = i+1, j+1 {
+	for ; i < len(s) && (s[i] == char || char == '.'); i = i + 1 {
 	}
 	if i > start {
 		return true, i
@@ -122,5 +122,5 @@ func isMatch(s string, p string) bool {
 }
 
 func main() {
-	fmt.Println(isMatch("aaaaaabcd", "a*bcde"))
+	fmt.Println(isMatch("aaaaaabcd", "a+bcd"))
 }
