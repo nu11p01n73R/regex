@@ -4,6 +4,11 @@ import (
 	"fmt"
 )
 
+type SavedPatterns struct {
+	Stack [][]int
+	Top   int
+}
+
 // Parses the pattern string.
 // The input pattern is parsed into multiple smaller
 // patterns which can be any of
@@ -49,10 +54,14 @@ Loop:
 // Return
 // 		bool 	if it can be matched from the current start.
 // 		int 	position where the pattern doesn't match.
-func starClosure(s string, p string, start int) (bool, int) {
+func starClosure(s string, p string, start int, pPtr int, stack *SavedPatterns) (bool, int) {
 	char := p[0]
 	i := start
 	for ; i < len(s) && (s[i] == char || char == '.'); i = i + 1 {
+		// Every character in the input string is optional.
+		// Save all the possible backtrack points
+		stack.Stack = append(stack.Stack, []int{i, pPtr})
+		stack.Top++
 	}
 
 	return true, i
@@ -64,10 +73,16 @@ func starClosure(s string, p string, start int) (bool, int) {
 // Return
 // 		bool 	if it can be matched from the current start.
 // 		int 	position where the pattern doesn't match.
-func plusClosure(s string, p string, start int) (bool, int) {
+func plusClosure(s string, p string, start int, pPtr int, stack *SavedPatterns) (bool, int) {
 	char := p[0]
 	i := start
 	for ; i < len(s) && (s[i] == char || char == '.'); i = i + 1 {
+		// First character is not optional since it is
+		// one or more
+		if i > start {
+			stack.Stack = append(stack.Stack, []int{i, pPtr})
+			stack.Top++
+		}
 	}
 	if i > start {
 		return true, i
@@ -81,7 +96,7 @@ func plusClosure(s string, p string, start int) (bool, int) {
 // for example
 // 		"abcd"
 // type of patterns
-// Return
+// ReturnP
 // 		bool 	if it can be matched from the current start.
 // 		int 	position where the pattern doesn't match.
 func patternMatch(s string, p string, start int) (bool, int) {
@@ -103,24 +118,36 @@ func patternMatch(s string, p string, start int) (bool, int) {
 func isMatch(s string, p string) bool {
 	patterns := parsePattern(p)
 	ptr := 0
-	match := false
+	match := true
+	var stack SavedPatterns
 
-	for _, pattern := range patterns {
+	for patPtr := 0; patPtr < len(patterns); {
+		pattern := patterns[patPtr]
 		if len(pattern) == 2 && pattern[1] == '*' {
-			match, ptr = starClosure(s, pattern, ptr)
+			match, ptr = starClosure(s, pattern, ptr, patPtr, &stack)
 		} else if len(pattern) == 2 && pattern[1] == '+' {
-			match, ptr = plusClosure(s, pattern, ptr)
+			match, ptr = plusClosure(s, pattern, ptr, patPtr, &stack)
 		} else {
 			match, ptr = patternMatch(s, pattern, ptr)
 		}
 
 		if !match {
-			return false
+			if stack.Top > 0 {
+				stack.Top--
+				backTrack := stack.Stack[stack.Top]
+				stack.Stack = stack.Stack[:stack.Top]
+
+				ptr = backTrack[0]
+				patPtr = backTrack[1]
+			} else {
+				return false
+			}
 		}
+		patPtr++
 	}
 	return match && ptr == len(s)
 }
 
 func main() {
-	fmt.Println(isMatch("aaaaaabcd", "a+bcd"))
+	fmt.Println(isMatch("aaaaaaaaaaaaaaaaaaaaabcbbbbbbbd", "a*aaaabcb*bd"))
 }
